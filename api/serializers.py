@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 import requests
-from django.db.models import Count
+from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -31,16 +31,28 @@ class NameCountryProbabilitySerializer(serializers.ModelSerializer):
         if probabilities.exists():
             return probabilities
 
-        nationalize_response = requests.get(f"https://api.nationalize.io/?name={name}").json()
+        try:
+            response = requests.get(f"https://api.nationalize.io/?name={name}")
+            response.raise_for_status()  # Проверяем статус ответа
+            nationalize_response = response.json()
+        except (requests.RequestException, ValueError) as e:
+            raise serializers.ValidationError(
+                {"error": f"Error fetching data from external API: {str(e)}"}
+            )
 
         if not nationalize_response.get("country"):
             return None
 
         results = []
         for country_data in nationalize_response["country"]:
-            country = cls._get_or_create_country(country_data["country_id"])
-            prob = cls._create_or_update_probability(name, country, country_data["probability"])
-            results.append(prob)
+            try:
+                country = cls._get_or_create_country(country_data["country_id"])
+                prob = cls._create_or_update_probability(name, country, country_data["probability"])
+                results.append(prob)
+            except Exception as e:
+                raise serializers.ValidationError(
+                    {"error": f"Error processing country data: {str(e)}"}
+                )
 
         return results
 
@@ -93,6 +105,7 @@ class NameCountryProbabilitySerializer(serializers.ModelSerializer):
         )
 
         if not created:
+            prob.probability = probability
             prob.count_of_requests += 1
             prob.last_accessed = timezone.now()
             prob.save()
@@ -109,6 +122,6 @@ class PopularNamesSerializer(serializers.Serializer):
         return (
             NameCountryProbability.objects.filter(country__code=country_code)
             .values("name")
-            .annotate(total_requests=Count("id"))
+            .annotate(total_requests=Sum("count_of_requests"))
             .order_by("-total_requests")[:5]
         )
