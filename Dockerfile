@@ -14,4 +14,4 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "valth_solutuion_test_task.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app.wsgi:application"]

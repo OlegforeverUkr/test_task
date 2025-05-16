@@ -33,7 +33,7 @@ class NameCountryProbabilitySerializer(serializers.ModelSerializer):
 
         try:
             response = requests.get(f"https://api.nationalize.io/?name={name}")
-            response.raise_for_status()  # Проверяем статус ответа
+            response.raise_for_status()
             nationalize_response = response.json()
         except (requests.RequestException, ValueError) as e:
             raise serializers.ValidationError(
