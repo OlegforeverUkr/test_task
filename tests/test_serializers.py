@@ -93,7 +93,6 @@ class TestNameCountryProbabilitySerializer:
         assert data["country_details"]["name"] == "France"
 
     def test_get_or_fetch_probabilities_cached(self, country):
-        # Создаем запись, которая должна быть в кэше (менее 24 часов)
         prob = NameCountryProbability.objects.create(
             name="Jean",
             country=country,
@@ -106,11 +105,10 @@ class TestNameCountryProbabilitySerializer:
         assert len(results) == 1
         assert results[0].name == "Jean"
         assert results[0].probability == 0.9
-        assert results[0].id == prob.id  # Проверяем, что получили именно созданную запись
+        assert results[0].id == prob.id
 
     @responses.activate
     def test_get_or_fetch_probabilities_new_name(self, country_data):
-        # Мокаем ответ от nationalize.io
         responses.add(
             responses.GET,
             "https://api.nationalize.io/?name=Marie",
@@ -118,7 +116,6 @@ class TestNameCountryProbabilitySerializer:
             status=200,
         )
 
-        # Мокаем ответ от restcountries
         responses.add(
             responses.GET,
             "https://restcountries.com/v3.1/alpha/FR",
@@ -140,7 +137,6 @@ class TestNameCountryProbabilitySerializer:
         assert results[0].probability == 0.75
 
     def test_get_or_fetch_probabilities_outdated(self, country):
-        # Создаем устаревшую запись (более 24 часов)
         old_prob = NameCountryProbability.objects.create(
             name="Louis",
             country=country,
@@ -160,8 +156,8 @@ class TestNameCountryProbabilitySerializer:
             results = NameCountryProbabilitySerializer.get_or_fetch_probabilities("Louis")
             assert len(results) == 1
             assert results[0].name == "Louis"
-            assert results[0].probability == 0.85  # Обновленная вероятность
-            assert results[0].id == old_prob.id  # Проверяем, что обновили существующую запись
+            assert results[0].probability == 0.85
+            assert results[0].id == old_prob.id
 
     @responses.activate
     def test_get_or_fetch_probabilities_multiple_countries(self):
@@ -179,7 +175,6 @@ class TestNameCountryProbabilitySerializer:
             status=200,
         )
 
-        # Мокаем ответы для каждой страны
         for country_code in ["US", "GB", "AU"]:
             responses.add(
                 responses.GET,
@@ -212,7 +207,6 @@ class TestPopularNamesSerializer:
         assert serializer.data["total_requests"] == 42
 
     def test_get_popular_names_ordering(self, country):
-        # Создаем несколько записей с разным количеством запросов
         names_data = [("Name1", 5), ("Name2", 10), ("Name3", 3)]
 
         for name, count in names_data:
@@ -230,7 +224,6 @@ class TestPopularNamesSerializer:
         assert results[0]["total_requests"] == 10
 
     def test_get_popular_names_limit(self, country):
-        # Создаем больше 5 записей
         for i in range(7):
             NameCountryProbability.objects.create(
                 name=f"Name{i}",
@@ -241,4 +234,4 @@ class TestPopularNamesSerializer:
             )
 
         results = PopularNamesSerializer.get_popular_names(country.code)
-        assert len(results) == 5  # Проверяем ограничение на 5 результатов
+        assert len(results) == 5
