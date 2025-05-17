@@ -1,4 +1,3 @@
-import urllib.parse
 from datetime import timedelta
 
 import pytest
@@ -99,14 +98,14 @@ class TestNameProbabilityView:
         NameCountryProbability.objects.create(
             name="James",
             country=country,
-            probability=0.6,
+            probability=0.4,
             count_of_requests=1,
             last_accessed=timezone.now(),
         )
         NameCountryProbability.objects.create(
             name="James",
             country=uk_country,
-            probability=0.4,
+            probability=0.6,
             count_of_requests=1,
             last_accessed=timezone.now(),
         )
@@ -117,19 +116,19 @@ class TestNameProbabilityView:
         data = response.json()
         assert len(data) == 2
         assert data[0]["probability"] == 0.6
-        assert data[0]["country_details"]["code"] == "US"
+        assert data[0]["country_details"]["code"] == "GB"
         assert data[1]["probability"] == 0.4
-        assert data[1]["country_details"]["code"] == "GB"
+        assert data[1]["country_details"]["code"] == "US"
 
     def test_get_name_with_special_chars(self, client):
-        special_name = "O'Connor-Smith"
-        encoded_name = urllib.parse.quote(special_name)
+        url = reverse("name-probability")
+        test_name = "O'Connor-Smith"
 
         with responses.RequestsMock() as rsps:
             rsps.add(
                 responses.GET,
-                f"https://api.nationalize.io/?name={encoded_name}",
-                json={"name": special_name, "country": [{"country_id": "IE", "probability": 0.8}]},
+                f"https://api.nationalize.io/?name={test_name}",
+                json={"name": test_name, "country": [{"country_id": "IE", "probability": 0.8}]},
                 status=200,
             )
 
@@ -143,16 +142,22 @@ class TestNameProbabilityView:
                         "subregion": "Northern Europe",
                         "capital": ["Dublin"],
                         "capitalInfo": {"latlng": [53.3498, -6.2603]},
+                        "independent": True,
+                        "maps": {},
+                        "flags": {},
+                        "coatOfArms": {},
                     }
                 ],
                 status=200,
             )
 
-            url = reverse("name-probability")
-            response = client.get(url, {"name": special_name})
+            response = client.get(url, {"name": test_name})
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
-            assert data[0]["name"] == special_name
+            assert len(data) == 1
+            assert data[0]["name"] == test_name
+            assert data[0]["probability"] == 0.8
+            assert data[0]["country_details"]["name"] == "Ireland"
 
     def test_get_name_api_timeout(self, client):
         with responses.RequestsMock() as rsps:

@@ -126,6 +126,10 @@ class TestNameCountryProbabilitySerializer:
                     "subregion": "Western Europe",
                     "capital": ["Paris"],
                     "capitalInfo": {"latlng": [48.8566, 2.3522]},
+                    "independent": True,
+                    "maps": {},
+                    "flags": {},
+                    "coatOfArms": {},
                 }
             ],
             status=200,
@@ -183,10 +187,16 @@ class TestNameCountryProbabilitySerializer:
                     {
                         "name": {
                             "common": f"Test {country_code}",
-                            "official": f"Test {country_code}",
+                            "official": f"Test {country_code} Official",
                         },
                         "region": "Test Region",
                         "subregion": "Test Subregion",
+                        "capital": ["Test Capital"],
+                        "capitalInfo": {"latlng": [0, 0]},
+                        "independent": True,
+                        "maps": {},
+                        "flags": {},
+                        "coatOfArms": {},
                     }
                 ],
                 status=200,
@@ -194,7 +204,8 @@ class TestNameCountryProbabilitySerializer:
 
         results = NameCountryProbabilitySerializer.get_or_fetch_probabilities("Alex")
         assert len(results) == 3
-        assert [r.probability for r in results] == [0.4, 0.3, 0.2]
+        probabilities = [r.probability for r in results]
+        assert probabilities == [0.4, 0.3, 0.2]
 
 
 @pytest.mark.django_db

@@ -107,6 +107,9 @@ class NameCountryProbabilitySerializer(serializers.ModelSerializer):
                 response.raise_for_status()
                 country_response = response.json()
 
+                if isinstance(country_response, list):
+                    country_response = country_response[0]
+
                 capital_coords = country_response.get("capitalInfo", {}).get("latlng", [None, None])
                 capital_name = (
                     country_response.get("capital", [""])[0]
