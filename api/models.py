@@ -2,26 +2,30 @@ from django.db import models
 
 
 class Country(models.Model):
-    code = models.CharField(max_length=2, primary_key=True)
-    name = models.CharField(max_length=100)
-    official_name = models.CharField(max_length=200)
+    code = models.CharField(max_length=5, primary_key=True)
+    name = models.CharField(max_length=200)
+    official_name = models.CharField(max_length=500)
     region = models.CharField(max_length=100)
     subregion = models.CharField(max_length=100)
     independent = models.BooleanField(null=True)
-    google_maps_url = models.URLField(null=True, blank=True)
-    openstreetmap_url = models.URLField(null=True, blank=True)
+    google_maps_url = models.URLField(max_length=500, null=True, blank=True)
+    openstreetmap_url = models.URLField(max_length=500, null=True, blank=True)
     capital_name = models.CharField(max_length=100, null=True, blank=True)
     capital_latitude = models.FloatField(null=True, blank=True)
     capital_longitude = models.FloatField(null=True, blank=True)
-    flag_png_url = models.URLField(null=True, blank=True)
-    flag_svg_url = models.URLField(null=True, blank=True)
-    flag_alt = models.CharField(max_length=200, null=True, blank=True)
-    coat_of_arms_png_url = models.URLField(null=True, blank=True)
-    coat_of_arms_svg_url = models.URLField(null=True, blank=True)
+    flag_png_url = models.URLField(max_length=500, null=True, blank=True)
+    flag_svg_url = models.URLField(max_length=500, null=True, blank=True)
+    flag_alt = models.TextField(max_length=2000, null=True, blank=True)
+    coat_of_arms_png_url = models.URLField(max_length=500, null=True, blank=True)
+    coat_of_arms_svg_url = models.URLField(max_length=500, null=True, blank=True)
     borders = models.ManyToManyField("self", symmetrical=True, blank=True)
 
     class Meta:
         verbose_name_plural = "countries"
+        indexes = [
+            models.Index(fields=["code"]),
+            models.Index(fields=["name"]),
+        ]
 
     def __str__(self):
         return f"{self.code} - {self.name}"
@@ -37,6 +41,10 @@ class NameCountryProbability(models.Model):
     class Meta:
         verbose_name_plural = "name country probabilities"
         unique_together = ["name", "country"]
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["country"]),
+        ]
 
     def __str__(self):
         return f"{self.name} - {self.country.code} ({self.probability})"

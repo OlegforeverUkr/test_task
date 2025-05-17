@@ -87,41 +87,76 @@ class NameCountryProbabilitySerializer(serializers.ModelSerializer):
         country = Country.objects.filter(code=country_code).first()
 
         if not country:
-            country_response = requests.get(
-                f"https://restcountries.com/v3.1/alpha/{country_code}"
-            ).json()[0]
+            try:
+                fields = [
+                    "name",
+                    "capital",
+                    "capitalInfo",
+                    "region",
+                    "subregion",
+                    "independent",
+                    "maps",
+                    "flags",
+                    "coatOfArms",
+                    "borders",
+                ]
+                response = requests.get(
+                    f"https://restcountries.com/v3.1/alpha/{country_code}"
+                    f"?fields={','.join(fields)}"
+                )
+                response.raise_for_status()
+                country_response = response.json()
 
-            capital_coords = country_response.get("capitalInfo", {}).get("latlng", [None, None])
+                if isinstance(country_response, list):
+                    country_response = country_response[0]
 
-            country = Country.objects.create(
-                code=country_code,
-                name=country_response["name"]["common"],
-                official_name=country_response["name"]["official"],
-                region=country_response.get("region", ""),
-                subregion=country_response.get("subregion", ""),
-                independent=country_response.get("independent"),
-                google_maps_url=country_response.get("maps", {}).get("googleMaps"),
-                openstreetmap_url=country_response.get("maps", {}).get("openStreetMaps"),
-                capital_name=country_response.get("capital", [None])[0],
-                capital_latitude=capital_coords[0],
-                capital_longitude=capital_coords[1],
-                flag_png_url=country_response.get("flags", {}).get("png"),
-                flag_svg_url=country_response.get("flags", {}).get("svg"),
-                flag_alt=country_response.get("flags", {}).get("alt"),
-                coat_of_arms_png_url=country_response.get("coatOfArms", {}).get("png"),
-                coat_of_arms_svg_url=country_response.get("coatOfArms", {}).get("svg"),
-            )
+                capital_coords = country_response.get("capitalInfo", {}).get("latlng", [None, None])
+                capital_name = (
+                    country_response.get("capital", [""])[0]
+                    if country_response.get("capital")
+                    else ""
+                )
 
-            country.save()
+                country = Country.objects.create(
+                    code=country_code,
+                    name=country_response.get("name", {}).get("common", ""),
+                    official_name=country_response.get("name", {}).get("official", ""),
+                    region=country_response.get("region", ""),
+                    subregion=country_response.get("subregion", ""),
+                    independent=country_response.get("independent", False),
+                    google_maps_url=country_response.get("maps", {}).get("googleMaps", ""),
+                    openstreetmap_url=country_response.get("maps", {}).get("openStreetMaps", ""),
+                    capital_name=capital_name,
+                    capital_latitude=capital_coords[0] if capital_coords else None,
+                    capital_longitude=capital_coords[1] if capital_coords else None,
+                    flag_png_url=country_response.get("flags", {}).get("png", ""),
+                    flag_svg_url=country_response.get("flags", {}).get("svg", ""),
+                    flag_alt=country_response.get("flags", {}).get("alt", ""),
+                    coat_of_arms_png_url=country_response.get("coatOfArms", {}).get("png", ""),
+                    coat_of_arms_svg_url=country_response.get("coatOfArms", {}).get("svg", ""),
+                )
 
-            if country_response.get("borders"):
-                for border_code in country_response["borders"]:
-                    border_country = Country.objects.filter(code=border_code).first()
-                    if not border_country:
-                        border_country = NameCountryProbabilitySerializer._get_or_create_country(
-                            border_code
-                        )
-                    country.borders.add(border_country)
+                country.save()
+
+                if country_response.get("borders"):
+                    for border_code in country_response["borders"]:
+                        try:
+                            border_country = Country.objects.filter(code=border_code).first()
+                            if not border_country:
+                                border_country = (
+                                    NameCountryProbabilitySerializer._get_or_create_country(
+                                        border_code
+                                    )
+                                )
+                            country.borders.add(border_country)
+                        except Exception as e:
+                            print(f"Error processing border country {border_code}: {str(e)}")
+                            continue
+
+            except requests.RequestException as e:
+                raise serializers.ValidationError(f"Error fetching country data from API: {str(e)}")
+            except (ValueError, KeyError, IndexError) as e:
+                raise serializers.ValidationError(f"Error processing country data: {str(e)}")
 
         return country
 
