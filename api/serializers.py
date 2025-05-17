@@ -12,10 +12,32 @@ class CountrySerializer(serializers.ModelSerializer):
     class Meta:
         model = Country
         fields = "__all__"
+        help_texts = {
+            "code": "Двухбуквенный код страны (ISO 3166-1 alpha-2)",
+            "name": "Общепринятое название страны",
+            "official_name": "Официальное название страны",
+            "region": "Регион мира",
+            "subregion": "Субрегион",
+            "independent": "Является ли страна независимой",
+            "capital_name": "Название столицы",
+            "capital_latitude": "Широта столицы",
+            "capital_longitude": "Долгота столицы",
+            "flag_png_url": "URL флага в формате PNG",
+            "flag_svg_url": "URL флага в формате SVG",
+            "flag_alt": "Текстовое описание флага",
+        }
 
 
 class NameCountryProbabilitySerializer(serializers.ModelSerializer):
-    country_details = CountrySerializer(source="country", read_only=True)
+    country_details = CountrySerializer(
+        source="country", read_only=True, help_text="Подробная информация о стране"
+    )
+    name = serializers.CharField(help_text="Анализируемое имя")
+    probability = serializers.FloatField(
+        help_text="Вероятность происхождения имени из данной страны"
+    )
+    count_of_requests = serializers.IntegerField(help_text="Количество запросов для данного имени")
+    last_accessed = serializers.DateTimeField(help_text="Время последнего запроса")
 
     class Meta:
         model = NameCountryProbability
@@ -29,6 +51,10 @@ class NameCountryProbabilitySerializer(serializers.ModelSerializer):
         ).select_related("country")
 
         if probabilities.exists():
+            for prob in probabilities:
+                prob.count_of_requests += 1
+                prob.last_accessed = timezone.now()
+                prob.save()
             return probabilities
 
         try:
@@ -86,9 +112,16 @@ class NameCountryProbabilitySerializer(serializers.ModelSerializer):
                 coat_of_arms_svg_url=country_response.get("coatOfArms", {}).get("svg"),
             )
 
+            country.save()
+
             if country_response.get("borders"):
-                border_countries = Country.objects.filter(code__in=country_response["borders"])
-                country.borders.add(*border_countries)
+                for border_code in country_response["borders"]:
+                    border_country = Country.objects.filter(code=border_code).first()
+                    if not border_country:
+                        border_country = NameCountryProbabilitySerializer._get_or_create_country(
+                            border_code
+                        )
+                    country.borders.add(border_country)
 
         return country
 
@@ -114,8 +147,8 @@ class NameCountryProbabilitySerializer(serializers.ModelSerializer):
 
 
 class PopularNamesSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    total_requests = serializers.IntegerField()
+    name = serializers.CharField(help_text="Имя")
+    total_requests = serializers.IntegerField(help_text="Общее количество запросов для этого имени")
 
     @classmethod
     def get_popular_names(cls, country_code):

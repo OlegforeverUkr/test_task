@@ -4,9 +4,11 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .schemas import name_probability_schema, popular_names_schema
 from .serializers import NameCountryProbabilitySerializer, PopularNamesSerializer
 
 
+@name_probability_schema
 class NameProbabilityView(APIView):
     def get(self, request):
         name = request.query_params.get("name", "").strip()
@@ -37,6 +39,7 @@ class NameProbabilityView(APIView):
         return Response(serializer.data)
 
 
+@popular_names_schema
 class PopularNamesView(APIView):
     def get(self, request):
         country_code = request.query_params.get("country", "").strip().upper()
@@ -53,7 +56,6 @@ class PopularNamesView(APIView):
 
         try:
             top_names = PopularNamesSerializer.get_popular_names(country_code)
-            # Фильтруем записи с нулевым количеством запросов
             top_names = [name for name in top_names if name["total_requests"] > 0]
 
             if not top_names:
@@ -61,7 +63,6 @@ class PopularNamesView(APIView):
                     {"error": "No data found for this country"}, status=status.HTTP_404_NOT_FOUND
                 )
 
-            # Сортируем по количеству запросов (по убыванию) и по имени (по возрастанию)
             top_names.sort(key=lambda x: (-x["total_requests"], x["name"]))
 
             serializer = PopularNamesSerializer(top_names, many=True)
