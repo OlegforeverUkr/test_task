@@ -1,110 +1,118 @@
 # Name Nationality Prediction API
 
-API сервис для предсказания национальности по имени и получения статистики популярных имен по странам.
+A service API for predicting nationality by name and getting statistics of popular names by country.
 
-## Технологии
+## Technologies
 
 - Python 3.11+
 - Django 5.2+
 - Django REST Framework
-- SQLite (база данных)
+- SQLite (database)
 - Pre-commit hooks
 
-## Установка
+## Installation
 
-1. Клонируйте репозиторий
-2. Создайте виртуальное окружение:
+1. Clone the repository
+2. Create a virtual environment:
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # для Linux/Mac
-.venv\Scripts\activate     # для Windows
+source .venv/bin/activate  # for Linux/Mac
+.venv\Scripts\activate     # for Windows
 ```
 
-3. Установите зависимости:
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Установите pre-commit хуки:
+4. Install pre-commit hooks:
 ```bash
 pre-commit install
 ```
 
-5. Примените миграции:
+5. Apply migrations:
 ```bash
 python manage.py migrate
 ```
 
-6. Запустите сервер:
+6. Run the server:
 ```bash
 python manage.py runserver
 ```
 
-## Pre-commit хуки
+## Pre-commit hooks
 
-В проекте настроены следующие pre-commit хуки:
+The project has the following pre-commit hooks configured:
 
-- **black**: форматирование кода
-- **isort**: сортировка импортов
-- **flake8**: проверка стиля кода
-- Базовые проверки (trailing-whitespace, end-of-file-fixer и др.)
+- **black**: code formatting
+- **isort**: import sorting
+- **flake8**: code style checking
+- Basic checks (trailing-whitespace, end-of-file-fixer, etc.)
 
-Хуки автоматически запускаются при коммите. Чтобы запустить их вручную:
+Hooks run automatically on commit. To run them manually:
 ```bash
 pre-commit run --all-files
 ```
 
+## API Documentation
+
+The API documentation is available at the following URLs:
+
+- Swagger UI: `/api/schema/swagger-ui/`
+- ReDoc: `/api/schema/redoc/`
+- OpenAPI Schema: `/api/schema/`
+
 ## API Endpoints
 
-### 1. Предсказание национальности по имени
+### 1. Name Nationality Prediction
 
 ```
 GET /api/names/?name=John
 ```
 
-Возвращает информацию о наиболее вероятных странах для данного имени.
+Returns information about the most probable countries for a given name.
 
-- Если имя существует в базе данных и запрашивалось не более суток назад, возвращает сохраненные данные
-- Если имя отсутствует или данные устарели, получает новые данные из Nationalize.io и REST Countries API
+- If the name exists in the database and was requested no more than 24 hours ago, returns cached data
+- If the name is missing or the data is outdated, fetches new data from Nationalize.io and REST Countries API
 
-### 2. Популярные имена по стране
+### 2. Popular Names by Country
 
 ```
 GET /api/popular-names/?country=US
 ```
 
-Возвращает топ-5 наиболее часто запрашиваемых имен для указанной страны.
+Returns the top 5 most frequently requested names for the specified country.
 
-## 🛠 Улучшения и технические решения
+## 🛠 Improvements and Technical Solutions
 
-1. **Кэширование данных**:
-   - Реализовано кэширование результатов API запросов в базе данных
-   - Данные считаются актуальными в течение 24 часов
-   - Это снижает количество запросов к внешним API и улучшает производительность
+1. **Data Caching**:
+   - Implemented caching of API request results in the database
+   - Data is considered valid for 24 hours
+   - This reduces the number of requests to external APIs and improves performance
 
-2. **Оптимизация запросов**:
-   - Использование `select_related` для оптимизации SQL-запросов
-   - Индексирование полей для быстрого поиска
+2. **Query Optimization**:
+   - Using `select_related` to optimize SQL queries
+   - Field indexing for fast search
 
-3. **Обработка ошибок**:
-   - Детальная обработка ошибок и понятные сообщения
-   - Валидация входных параметров
+3. **Error Handling**:
+   - Detailed error handling and clear messages
+   - Input parameter validation
 
-4. **Масштабируемость**:
-   - Модульная структура кода
-   - Возможность легкого добавления новых эндпоинтов
-   - Подготовка к возможному переходу на другую БД
+4. **Scalability**:
+   - Modular code structure
+   - Easy addition of new endpoints
+   - Preparation for possible database migration
 
-5. **Качество кода**:
-   - Автоматическое форматирование (black)
-   - Проверка стиля кода (flake8)
-   - Сортировка импортов (isort)
-   - Pre-commit хуки для контроля качества
+5. **Code Quality**:
+   - Automatic formatting (black)
+   - Code style checking (flake8)
+   - Import sorting (isort)
+   - Pre-commit hooks for quality control
 
-## Возможные улучшения
+## Possible Improvements
 
-1. Добавление кэширования на уровне Redis/Memcached
-2. Реализация rate limiting для API endpoints
-3. Добавление аутентификации и авторизации
-4. Добавление документации API (например, через Swagger/OpenAPI)
-5. Реализация асинхронной обработки запросов к внешним API
+1. Adding caching at Redis/Memcached level
+2. Implementing rate limiting for API endpoints
+3. Adding authentication and authorization
+4. Adding API documentation (via Swagger/OpenAPI)
+5. Implementing asynchronous processing of requests to external APIs
